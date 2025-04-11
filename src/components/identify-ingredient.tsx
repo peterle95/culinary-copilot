@@ -96,10 +96,6 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
             } else {
               console.log(`Low confidence: ${result?.confidence}.  AI is not confident so not prompting user.`);
               //Only shows if the confidence is low.  Otherwise do nothing.
-              toast({
-                title: 'Could not identify ingredient with sufficient confidence',
-                description: 'Please try again or enter manually.',
-              });
               setShowManualInput(true); // Show manual input
               setIdentifiedIngredient(null);
             }
