@@ -27,6 +27,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
   const [identifiedIngredient, setIdentifiedIngredient] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [isIdentifying, setIsIdentifying] = useState(true); // Add a state to control identification
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -79,7 +80,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
   useEffect(() => {
     let recognitionInterval: NodeJS.Timeout;
 
-    if (isCameraActive && hasCameraPermission) {
+    if (isCameraActive && hasCameraPermission && isIdentifying) {
       recognitionInterval = setInterval(async () => {
         const frame = captureFrame();
         if (frame) {
@@ -88,6 +89,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
             if (result && result.ingredientName) {
               setIdentifiedIngredient(result.ingredientName);
               setOpen(true); // Open the confirmation dialog
+              setIsIdentifying(false); // Stop identifying until confirmed
             } else {
               toast({
                 title: 'Could not identify ingredient',
@@ -107,18 +109,20 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     }
 
     return () => clearInterval(recognitionInterval);
-  }, [isCameraActive, hasCameraPermission, onIngredientIdentified]);
+  }, [isCameraActive, hasCameraPermission, onIngredientIdentified, isIdentifying]);
 
   const handleConfirmation = (confirm: boolean) => {
     setOpen(false);
     if (confirm && identifiedIngredient) {
       onIngredientIdentified(identifiedIngredient);
       setIdentifiedIngredient(null);
+      setIsIdentifying(true); // Start identifying again
     } else {
       toast({
         title: 'Try again!',
         description: 'Please reposition the ingredient for better identification.',
       });
+      setIsIdentifying(true); // Allow retrying
     }
   };
 
@@ -173,5 +177,3 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     </div>
   );
 };
-
-    
