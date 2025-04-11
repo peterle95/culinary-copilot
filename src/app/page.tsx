@@ -18,6 +18,7 @@ import {IdentifyIngredient} from '@/components/identify-ingredient';
 import {RecipeAssistant} from '@/components/recipe-assistant';
 import {Timer} from '@/components/timer';
 import {useState} from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
@@ -31,7 +32,7 @@ export default function Home() {
       <div className="flex h-screen w-full">
         <Sidebar collapsible="icon">
           <SidebarHeader className="m-2">
-            <div className="flex items-center space-x-2">
+            <Link href="/profile" className="flex items-center space-x-2">
               <Image
                 src="https://picsum.photos/50/50"
                 alt="Culinary Copilot Logo"
@@ -40,7 +41,7 @@ export default function Home() {
                 className="rounded-full"
               />
               <h2 className="font-semibold text-lg">Culinary Copilot</h2>
-            </div>
+            </Link>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
@@ -78,4 +79,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
