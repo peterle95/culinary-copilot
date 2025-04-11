@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {Input} from "@/components/ui/input";
 
 interface IdentifyIngredientProps {
   onIngredientIdentified: (ingredient: string) => void;
@@ -27,7 +28,9 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
   const [identifiedIngredient, setIdentifiedIngredient] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [isIdentifying, setIsIdentifying] = useState(true); // Add a state to control identification
+  const [isIdentifying, setIsIdentifying] = useState(true);
+  const [manualIngredient, setManualIngredient] = useState<string>(''); // New state for manual ingredient input
+  const [showManualInput, setShowManualInput] = useState<boolean>(false); // New state to control visibility of manual input
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -88,6 +91,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
             const result = await identifyIngredient({photoUrl: frame});
             if (result && result.ingredientName) {
               setIdentifiedIngredient(result.ingredientName);
+              setShowManualInput(false);
               setOpen(true); // Open the confirmation dialog
               setIsIdentifying(false); // Stop identifying until confirmed
             } else {
@@ -95,6 +99,8 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
                 title: 'Could not identify ingredient',
                 description: 'Please try again.',
               });
+              setShowManualInput(true); // Show manual input
+              setIdentifiedIngredient(null);
             }
           } catch (error) {
             console.error('Error identifying ingredient:', error);
@@ -103,6 +109,8 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
               title: 'Error Identifying Ingredient',
               description: 'There was an error processing the image. Please try again.',
             });
+            setShowManualInput(true); // Show manual input
+            setIdentifiedIngredient(null);
           }
         }
       }, 3000); // Check every 3 seconds
@@ -113,17 +121,27 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
 
   const handleConfirmation = (confirm: boolean) => {
     setOpen(false);
-    if (confirm && identifiedIngredient) {
-      onIngredientIdentified(identifiedIngredient);
-      setIdentifiedIngredient(null);
-      setIsIdentifying(true); // Start identifying again
+    if (confirm) {
+      const ingredientToConfirm = manualIngredient || identifiedIngredient;
+      if (ingredientToConfirm) {
+        onIngredientIdentified(ingredientToConfirm);
+        setIdentifiedIngredient(null);
+        setManualIngredient('');
+        setIsIdentifying(true); // Start identifying again
+        setShowManualInput(false);
+      }
     } else {
       toast({
         title: 'Try again!',
-        description: 'Please reposition the ingredient for better identification.',
+        description: 'Please reposition the ingredient for better identification or enter the ingredient manually.',
       });
       setIsIdentifying(true); // Allow retrying
+      setShowManualInput(true);
     }
+  };
+
+  const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setManualIngredient(e.target.value);
   };
 
   return (
@@ -158,12 +176,24 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
         </Button>
       </div>
 
+      {showManualInput && (
+        <div className="mt-4">
+          <Input
+            type="text"
+            placeholder="Enter ingredient name"
+            value={manualIngredient}
+            onChange={handleManualInputChange}
+            className="w-full"
+          />
+        </div>
+      )}
+
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Ingredient</AlertDialogTitle>
             <AlertDialogDescription>
-              Is this ingredient a <span className="font-medium">{identifiedIngredient}</span>?
+              Is this ingredient a <span className="font-medium">{manualIngredient || identifiedIngredient}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
