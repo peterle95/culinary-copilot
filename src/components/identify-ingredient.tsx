@@ -5,6 +5,17 @@ import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import {Camera, CameraOff} from "lucide-react";
 import {identifyIngredient} from '@/ai/flows/identify-ingredient';
 import {toast} from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface IdentifyIngredientProps {
   onIngredientIdentified: (ingredient: string) => void;
@@ -14,6 +25,8 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
+  const [identifiedIngredient, setIdentifiedIngredient] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -73,7 +86,8 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
           try {
             const result = await identifyIngredient({photoUrl: frame});
             if (result && result.ingredientName) {
-              onIngredientIdentified(result.ingredientName);
+              setIdentifiedIngredient(result.ingredientName);
+              setOpen(true); // Open the confirmation dialog
             } else {
               toast({
                 title: 'Could not identify ingredient',
@@ -94,6 +108,19 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
 
     return () => clearInterval(recognitionInterval);
   }, [isCameraActive, hasCameraPermission, onIngredientIdentified]);
+
+  const handleConfirmation = (confirm: boolean) => {
+    setOpen(false);
+    if (confirm && identifiedIngredient) {
+      onIngredientIdentified(identifiedIngredient);
+      setIdentifiedIngredient(null);
+    } else {
+      toast({
+        title: 'Try again!',
+        description: 'Please reposition the ingredient for better identification.',
+      });
+    }
+  };
 
   return (
     <div>
@@ -126,6 +153,22 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
           )}
         </Button>
       </div>
+
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Ingredient</AlertDialogTitle>
+            <AlertDialogDescription>
+              Is this ingredient a <span className="font-medium">{identifiedIngredient}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleConfirmation(false)}>Try Again</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirmation(true)}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <p className="mt-2 text-sm text-muted-foreground">Point the camera at an ingredient to identify it.</p>
     </div>
   );
