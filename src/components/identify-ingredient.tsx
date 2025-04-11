@@ -119,7 +119,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
 
   const handleConfirmation = (confirm: boolean | 'manual') => {
     setOpen(false);
-    setIsIdentifying(false);
+
     if (confirm === true) {
       if (identifiedIngredient) {
         onIngredientIdentified(identifiedIngredient);
@@ -131,6 +131,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     } else if (confirm === 'manual') {
       setShowManualInput(true);
       setIdentifiedIngredient(null);
+      setIsIdentifying(false); //Pause AI scanning until manually entered and confirmed
     } else {
       toast({
         title: 'Try again!',
@@ -151,7 +152,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
       onIngredientIdentified(manualIngredient);
       setManualIngredient('');
       setShowManualInput(false);
-      setIsIdentifying(true);
+      setIsIdentifying(true); // Resume AI after confirmation
       toast({
         title: 'Ingredient Added',
         description: `${manualIngredient} has been added to the list.`,
@@ -162,6 +163,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
         description: 'The ingredient field cannot be empty.',
         variant: "destructive",
       });
+      setIsIdentifying(false);
     }
     setOpen(false);
   };
