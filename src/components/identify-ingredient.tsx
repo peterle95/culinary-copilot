@@ -3,6 +3,8 @@ import {useEffect, useRef, useState} from 'react';
 import {Button} from "@/components/ui/button";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import {Camera, CameraOff} from "lucide-react";
+import {identifyIngredient} from '@/ai/flows/identify-ingredient';
+import {toast} from "@/hooks/use-toast";
 
 interface IdentifyIngredientProps {
   onIngredientIdentified: (ingredient: string) => void;
@@ -25,6 +27,11 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
       }
     };
 
@@ -38,26 +45,55 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
         videoRef.current.srcObject = null;
       }
     }
-
-    // TODO: Implement real-time ingredient recognition logic here
-    // This is a placeholder that simulates ingredient identification
-    const recognitionTimeout = setTimeout(() => {
-      const ingredients = ['Tomato', 'Basil', 'Mozzarella'];
-      const randomIndex = Math.floor(Math.random() * ingredients.length);
-      onIngredientIdentified(ingredients[randomIndex]);
-    }, 5000);
-
-    return () => {
-      clearTimeout(recognitionTimeout);
-      // Stop the camera when the component unmounts
-      const stream = videoRef.current?.srcObject as MediaStream | null;
-      stream?.getTracks().forEach(track => track.stop());
-    };
-  }, [onIngredientIdentified, isCameraActive]);
+  }, [isCameraActive]);
 
   const toggleCamera = () => {
     setIsCameraActive(prev => !prev);
   };
+
+  const captureFrame = () => {
+    if (!videoRef.current) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg');
+  };
+
+
+  useEffect(() => {
+    let recognitionInterval: NodeJS.Timeout;
+
+    if (isCameraActive && hasCameraPermission) {
+      recognitionInterval = setInterval(async () => {
+        const frame = captureFrame();
+        if (frame) {
+          try {
+            const result = await identifyIngredient({photoUrl: frame});
+            if (result && result.ingredientName) {
+              onIngredientIdentified(result.ingredientName);
+            } else {
+              toast({
+                title: 'Could not identify ingredient',
+                description: 'Please try again.',
+              });
+            }
+          } catch (error) {
+            console.error('Error identifying ingredient:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Error Identifying Ingredient',
+              description: 'There was an error processing the image. Please try again.',
+            });
+          }
+        }
+      }, 3000); // Check every 3 seconds
+    }
+
+    return () => clearInterval(recognitionInterval);
+  }, [isCameraActive, hasCameraPermission, onIngredientIdentified]);
 
   return (
     <div>
@@ -94,3 +130,5 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     </div>
   );
 };
+
+    
