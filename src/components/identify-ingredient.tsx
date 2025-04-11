@@ -30,6 +30,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
   const [isIdentifying, setIsIdentifying] = useState(true);
   const [manualIngredient, setManualIngredient] = useState<string>(''); // New state for manual ingredient input
   const [showManualInput, setShowManualInput] = useState<boolean>(false); // New state to control visibility of manual input
+  const confidenceThreshold = 0.7; // Adjust this value as needed
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -88,14 +89,16 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
         if (frame) {
           try {
             const result = await identifyIngredient({photoUrl: frame});
-            if (result && result.ingredientName) {
+            if (result && result.ingredientName && result.confidence >= confidenceThreshold) {
               setIdentifiedIngredient(result.ingredientName);
               setShowManualInput(false);
               setOpen(true); // Open the confirmation dialog
             } else {
+              console.log(`Low confidence: ${result?.confidence}.  AI is not confident so not prompting user.`);
+              //Only shows if the confidence is low.  Otherwise do nothing.
               toast({
-                title: 'Could not identify ingredient',
-                description: 'Please try again.',
+                title: 'Could not identify ingredient with sufficient confidence',
+                description: 'Please try again or enter manually.',
               });
               setShowManualInput(true); // Show manual input
               setIdentifiedIngredient(null);
@@ -115,7 +118,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     }
 
     return () => clearInterval(recognitionInterval);
-  }, [isCameraActive, hasCameraPermission, onIngredientIdentified, isIdentifying]);
+  }, [isCameraActive, hasCameraPermission, onIngredientIdentified, isIdentifying, confidenceThreshold]);
 
   const handleConfirmation = (confirm: boolean | 'manual') => {
     setOpen(false);
