@@ -14,7 +14,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {Input} from "@/components/ui/input";
 
@@ -93,7 +92,6 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
               setIdentifiedIngredient(result.ingredientName);
               setShowManualInput(false);
               setOpen(true); // Open the confirmation dialog
-              setIsIdentifying(false); // Stop identifying until confirmed
             } else {
               toast({
                 title: 'Could not identify ingredient',
@@ -119,30 +117,55 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
     return () => clearInterval(recognitionInterval);
   }, [isCameraActive, hasCameraPermission, onIngredientIdentified, isIdentifying]);
 
-  const handleConfirmation = (confirm: boolean) => {
+  const handleConfirmation = (confirm: boolean | 'manual') => {
     setOpen(false);
-    if (confirm) {
-      const ingredientToConfirm = manualIngredient || identifiedIngredient;
-      if (ingredientToConfirm) {
-        onIngredientIdentified(ingredientToConfirm);
+    setIsIdentifying(false);
+    if (confirm === true) {
+      if (identifiedIngredient) {
+        onIngredientIdentified(identifiedIngredient);
         setIdentifiedIngredient(null);
         setManualIngredient('');
         setIsIdentifying(true); // Start identifying again
         setShowManualInput(false);
       }
+    } else if (confirm === 'manual') {
+      setShowManualInput(true);
+      setIdentifiedIngredient(null);
     } else {
       toast({
         title: 'Try again!',
         description: 'Please reposition the ingredient for better identification or enter the ingredient manually.',
       });
-      setIsIdentifying(true); // Allow retrying
-      setShowManualInput(true);
+      setIsIdentifying(true);
+      setShowManualInput(false);
+      setIdentifiedIngredient(null);
     }
   };
 
   const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setManualIngredient(e.target.value);
   };
+
+  const handleManualConfirmation = () => {
+    if (manualIngredient.trim() !== '') {
+      onIngredientIdentified(manualIngredient);
+      setManualIngredient('');
+      setShowManualInput(false);
+      setIsIdentifying(true);
+      toast({
+        title: 'Ingredient Added',
+        description: `${manualIngredient} has been added to the list.`,
+      });
+    } else {
+      toast({
+        title: 'Please Enter an Ingredient',
+        description: 'The ingredient field cannot be empty.',
+        variant: "destructive",
+      });
+    }
+    setOpen(false);
+  };
+
 
   return (
     <div>
@@ -185,6 +208,9 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
             onChange={handleManualInputChange}
             className="w-full"
           />
+          <Button onClick={handleManualConfirmation} className="mt-2 w-full">
+            Confirm Manually Entered Ingredient
+          </Button>
         </div>
       )}
 
@@ -193,12 +219,18 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Ingredient</AlertDialogTitle>
             <AlertDialogDescription>
-              Is this ingredient a <span className="font-medium">{manualIngredient || identifiedIngredient}</span>?
+              Is this ingredient a <span className="font-medium">{identifiedIngredient}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleConfirmation(false)}>Try Again</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleConfirmation(true)}>Confirm</AlertDialogAction>
+            <Button variant="outline" onClick={() => handleConfirmation(false)}>Try Again</Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleConfirmation('manual')}
+            >
+              Try Again and Confirm Manually
+            </Button>
+            <Button onClick={() => handleConfirmation(true)}>Confirm</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
