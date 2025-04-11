@@ -228,7 +228,7 @@ export const IdentifyIngredient: React.FC<IdentifyIngredientProps> = ({onIngredi
               variant="secondary"
               onClick={() => handleConfirmation('manual')}
             >
-              Try Again and Confirm Manually
+              Import Manually
             </Button>
             <Button onClick={() => handleConfirmation(true)}>Confirm</Button>
           </AlertDialogFooter>
